@@ -19,6 +19,7 @@ public class Program
         long answer = 0;
 
         // code here
+        int j;
 
         // create and use Combinations(n, k);
         // create and use Factorial(n);
