@@ -59,7 +59,7 @@ public class Program
         if (a2 >= b2 + c2 || b2 >= a2 + c2 || c2 >= a2 + b2) return -1;
         
         // create and use GeronArea(a, b, c);
-        double area1 = GeronArea(a1, b1, b1), area2 = GeronArea(a2, b2, c2);
+        double area1 = GeronArea(a1, b1, c1), area2 = GeronArea(a2, b2, c2);
         if (area1 == area2) return 0;
         if (area1 > area2) return 1;
         if (area2 > area1) return 2;
@@ -98,10 +98,9 @@ public class Program
         // code here
 
         // use GetDistance(v, a, t); t - hours
-        int t = 1;
-        while (GetDistance(a1, v1, t) > GetDistance(v2, a2, t)) 
-            t++;
-        answer = t;
+        answer++;
+        while (GetDistance(v1, a1, answer) > GetDistance(v2, a2, answer)) 
+            answer++;
         // end
 
         return answer;
@@ -649,11 +648,61 @@ public class Program
     #endregion
 
     #region Level 3
-    public delegate double operat(double x, double a, double b, double h);
+    //public delegate double YFunction1(double x);
+    //public delegate double SumFunction(int i, double x, ref int change);
+    public delegate double YFunction(double x, double a, double b, double h);
+    public delegate double SumFunction(int i, double x, ref int change);
+    public delegate double YFunction1(double x);
+    public double Factor(int i, double x, ref int f) {
+        if (i > 0) f *= i;
+        return Math.Cos(i*x)/f;
+    }
+    public double YFunc1(double x) {
+        return Math.Exp(Math.Cos(x)) * Math.Cos(Math.Sin(x));
+    }
+    public double YFunc2(double x) {
+        return (((x*x) - Math.PI * Math.PI/3))/4;
+    }
+    public double Siign(int i, double x, ref int sign) {
+        sign *= -1;
+        return sign * Math.Cos(i*x)/(i*i);
+    }
+    public double Calculate(SumFunction SFunc, double x, int i) {
+        double s = 0;
+        const double e = 0.0001;
+        int g = 1;
+        double member = SFunc(i, x, ref g);
+        while (Math.Abs(member) > e) {
+            s += member;
+            member = SFunc(++i, x, ref g);
+        }
+        return s;
+    }
+    public void GetSumAndY(SumFunction SFunc, YFunction1 YFunc, double a, double b, double h, double[,] SumAndY, int first) {
+        double x;
+        double sum;
+        double y;
+        int lim = (int)((b - a) / h) + 1;
+        for (int i = 0; i < lim; i++) {
+            x = a + i * h;
+            sum = Calculate(SFunc, x, first);
+            y = YFunc(x);
+            SumAndY[i, 0] = sum;
+            SumAndY[i, 1] = y;
+        }
+    }
+    public void Task_3_1(ref double[,] firstSumAndY, ref double[,] secondSumAndY){
 
-    public void Task_3_1(ref double[,] firstSumAndY, ref double[,] secondSumAndY)
-    {
-        // code here
+        // code here 
+        double a1 = 0.1, b1 = 1, h1 = 0.1;
+        int size1 = (int)((b1 - a1) / h1) + 1;
+        firstSumAndY = new double[size1, 2];
+        GetSumAndY(Factor, YFunc1, a1, b1, h1, firstSumAndY, 0);
+        //
+        double a2 = Math.PI/5, b2 = Math.PI, h2 = Math.PI/25;
+        int size2 = (int)((b2 - a2) / h2) + 1;
+        secondSumAndY = new double[size2, 2];
+        GetSumAndY(Siign, YFunc2, a2, b2, h2, secondSumAndY, 1);
 
         // create and use public delegate SumFunction(x) and public delegate YFunction(x)
         // create and use method GetSumAndY(sFunction, yFunction, a, b, h);
@@ -661,7 +710,6 @@ public class Program
 
         // end
     }
-
     public void Task_3_2(int[,] matrix)
     {
         // SortRowStyle sortStyle = default(SortRowStyle); - uncomment me
@@ -674,14 +722,39 @@ public class Program
 
         // end
     }
+    public delegate void SwapDirection(double[] array);
 
+    void SwapRight(double[] array) {
+        for (int i = 0; i < array.Length - 1; i += 2)
+            (array[i], array[i + 1]) = (array[i + 1], array[i]);
+    }
+
+    void SwapLeft(double[] array) {
+        for (int i = array.Length - 1; i > 0; i -= 2)
+            (array[i], array[i - 1]) = (array[i - 1], array[i]);
+    }
+
+    double GetSum(double[] array) {
+        double s = 0;
+        int n = array.Length;
+        for (int i = 1; i < n; i += 2)
+            s += array[i];
+        return s;
+    }
     public double Task_3_3(double[] array)
     {
         double answer = 0;
-        // SwapDirection swapper = default(SwapDirection); - uncomment me
+        SwapDirection swapper = default(SwapDirection); 
 
         // code here
-
+        double average = 0;
+        foreach (double i in array) 
+            average += i;
+        average /= array.Length;
+        SwapDirection swap = default(SwapDirection);
+        swap = array[0] > average ? SwapRight : SwapLeft;
+        swap(array);
+        answer = GetSum(array);
         // create and use public delegate SwapDirection(array);
         // create and use methods SwapRight(array) and SwapLeft(array)
         // create and use method GetSum(array, start, h) that sum elements with a negative indexes
@@ -706,13 +779,31 @@ public class Program
 
         return answer;
     }
-
+    public double YFirst(double x, double a, double b, double h) {
+        return x * x - Math.Sin(x);
+    }
+    public double YSecond(double x, double a, double b, double h) {
+        return Math.Exp(x) - 1;
+    }
+    public int CountSignFlips(YFunction Yf, double a, double b, double h) {
+        int c = 0;
+        bool flag = Yf(a, a, b, h) < 0 ? true : false;
+        int n = (int)((b - a) / h);
+        for (int i = 1; i <= n; i++) {
+            double tmp = Yf(a + i * h, a, b, h);
+            if ((tmp < 0 && !flag) || (tmp > 0 && flag)) { flag = !flag; c++; }
+        }
+        return c;
+    }
     public void Task_3_5(out int func1, out int func2)
     {
         func1 = 0;
         func2 = 0;
 
         // code here
+        func1 = CountSignFlips(YFirst, 0, 2, 0.1);
+        func2 = CountSignFlips(YSecond, -1, 1, 0.2);
+
 
         // use public delegate YFunction(x, a, b, h) from Task_3_1
         // create and use method CountSignFlips(YFunction, a, b, h);
@@ -720,6 +811,7 @@ public class Program
 
         // end
     }
+    
 
     public void Task_3_6(int[,] matrix)
     {
@@ -732,10 +824,37 @@ public class Program
 
         // end
     }
+    public delegate int CountPositive(int[,] matrix, int index);
 
     public void Task_3_7(ref int[,] B, int[,] C)
     {
         // code here
+        CountPositive count = CountRowPositive;
+        int n1 = B.GetLength(0), m1 = B.GetLength(1), n2 = C.GetLength(0), m2 = C.GetLength(1);
+        int maxB = 0, maxC = 0;
+        int indexB = 0, indexC = 0;
+        for (int i = 0; i < n1; i++) {
+            int k = CountRowPositive(B, i);
+            if (k > maxB) { maxB = k; indexB = i; }
+        }
+        for (int j = 0; j < m2; j++) {
+            int k = CountcolumnPositive(C, j);
+            if (k > maxC) { maxC = k; indexC = j; }
+        }
+
+        var newB = new int[n1+1, m1];
+
+        for (int i = 0; i < n1; i++) 
+            if (i <= indexB)
+                for (int j = 0; j < m1; j++)
+                    newB[i, j] = B[i, j];
+            else
+                for (int j = 0; j < m1; j++)
+                    newB[i+1, j] = B[i, j];
+
+        for (int j = 0; j < m1; j++)    
+            newB[indexB+1, j] = C[j, indexC];
+        B = newB;
 
         // create and use public delegate CountPositive(matrix, index);
         // use CountRowPositive(matrix, rowIndex) from Task_2_7
@@ -759,13 +878,24 @@ public class Program
 
         // end
     }
-
+    public delegate void FindElementDelegate(int[,] matrix, out int x, out int y);
+    public int[,] RemoveRows(int[,] matrix, FindElementDelegate findMax, FindElementDelegate findMin) {
+        FindMaxIndex(matrix, out int rowMax, out int columnMax);
+        FindMinIndex(matrix, out int rowMin, out int columnMin);
+        switch (rowMax-rowMin) {
+            case 0: RemoveRow(ref matrix, rowMax); break;
+            case > 0: RemoveRow(ref matrix, rowMax); RemoveRow(ref matrix, rowMin); break;
+            case < 0: RemoveRow(ref matrix, rowMin); RemoveRow(ref matrix, rowMax); break;
+        }
+        return matrix;
+    }
     public void Task_3_13(ref int[,] matrix)
     {
         // code here
 
         // use public delegate FindElementDelegate(matrix) from Task_3_6
         // create and use method RemoveRows(matrix, findMax, findMin)
+        matrix = RemoveRows(matrix, FindMaxIndex, FindMinIndex);
 
         // end
     }
@@ -785,11 +915,21 @@ public class Program
 
         // end
     }
-
+    public delegate void ReplaceMaxElement(int[,] matrix, int row, int column);
+    public void EvenOddRowsTransform(int[,] matrix, ReplaceMaxElement replaceMaxElementOdd, ReplaceMaxElement replaceMaxElementEven) {
+        int n = matrix.GetLength(0), m = matrix.GetLength(1);
+        for (int i = 0; i < n; i++) {
+            int columnIndex;
+            FindRowMaxIndex(matrix, i, out columnIndex);
+            if (i % 2 == 0) ReplaceMaxElementOdd(matrix, i, columnIndex);
+            else ReplaceMaxElementEven(matrix, i, columnIndex);
+        }
+    }
     public void Task_3_27(int[,] A, int[,] B)
     {
         // code here
-
+        EvenOddRowsTransform(A, ReplaceMaxElementOdd, ReplaceMaxElementEven);
+        EvenOddRowsTransform(B, ReplaceMaxElementOdd, ReplaceMaxElementEven);
         // create and use public delegate ReplaceMaxElement(matrix, rowIndex, max);
         // use ReplaceMaxElementOdd(matrix) from Task_2_27
         // use ReplaceMaxElementEven(matrix) from Task_2_27
